@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Academic Descent is a web application that visualizes academic paper citation networks. Users can search for a paper by title and explore its citations as an interactive hierarchical graph. The application uses the OpenAlex API to fetch paper metadata and citation information.
+Academic Descent is a web application that visualizes academic paper citation networks. Users can search for a paper by title and explore its citations as an interactive hierarchical graph. The application uses the Semantic Scholar API to fetch paper metadata and citation information.
 
 ## Architecture
 
@@ -13,10 +13,9 @@ Academic Descent is a web application that visualizes academic paper citation ne
 The backend is a Flask application located in `app/api.py` that serves both the web interface and REST API:
 
 - **Framework**: Flask with CORS enabled for API access
-- **External API**: OpenAlex API (`https://api.openalex.org`)
+- **External API**: Semantic Scholar Graph API (`https://api.semanticscholar.org/graph/v1`)
 - **Key Functions**:
-  - `format_paper(work)`: Converts OpenAlex work format to standardized paper structure
-  - `search_paper(title)`: Searches OpenAlex for a paper by title, returns first match
+  - `search_paper(title)`: Searches Semantic Scholar for a paper by title, returns first match
   - `get_paper_citations(paper_id)`: Fetches all references (papers cited by the given paper)
 
 **Important**: The API fetches *references* (papers that are cited), not *citations* (papers that cite this paper). This creates a backward-looking citation graph showing what papers influenced the searched paper.
@@ -33,9 +32,9 @@ The frontend uses vis.js for network graph visualization:
 
 ### Data Flow
 
-1. User searches for paper title → `/api/search` → OpenAlex search endpoint
-2. Root paper added to graph → User clicks node → `/api/citations/:paperId` → OpenAlex work endpoint
-3. Citations added as child nodes (batched requests for efficiency) → Process repeats for any clicked node
+1. User searches for paper title → `/api/search` → Semantic Scholar search endpoint
+2. Root paper added to graph → User clicks node → `/api/citations/:paperId` → Semantic Scholar references endpoint
+3. Citations added as child nodes → Process repeats for any clicked node
 
 ## Development Commands
 
@@ -86,11 +85,7 @@ flake8 app/ tests/
 
 ### API Error Handling
 
-The OpenAlex API calls in `app/api.py` use try-except blocks with 10-second timeouts. Errors are logged to console and return empty/None values rather than raising exceptions. API endpoints return proper HTTP status codes (400 for bad requests, 404 for not found).
-
-### Citation Batching
-
-The `get_paper_citations()` function fetches referenced works in batches of 50 (OpenAlex's per_page limit). This is more efficient than making individual requests for each citation. The code limits to 100 total citations to balance comprehensiveness with performance.
+The Semantic Scholar API calls in `app/api.py` use try-except blocks with 10-second timeouts. Errors are logged to console and return empty/None values rather than raising exceptions. API endpoints return proper HTTP status codes (400 for bad requests, 404 for not found).
 
 ### Graph Visualization
 
@@ -119,20 +114,18 @@ The vis.js options are in `app/static/app.js:initNetwork()`. Key configuration a
 
 ### Using a Different Citation API
 
-If switching to another API (CrossRef, Semantic Scholar, etc.):
+If switching from Semantic Scholar to another API (CrossRef, OpenAlex, etc.):
 1. Update the base URL constant in `app/api.py`
 2. Modify `search_paper()` and `get_paper_citations()` to match new API response format
-3. Update the `format_paper()` function to handle the new API's data structure
-4. Ensure the returned data structure includes: `paperId`, `title`, `authors`, `year`, `citationCount`
-5. Update tests to reflect new API behavior
+3. Ensure the returned data structure includes: `paperId`, `title`, `authors`, `year`, `citationCount`
+4. Update tests to reflect new API behavior
 
-## OpenAlex API Notes
+## Semantic Scholar API Notes
 
-- **No authentication required** - completely free and open (polite usage encouraged: add email to user-agent)
-- **Rate Limit**: 100,000 requests per day for anonymous use; no per-minute limits
-- **Paper ID Format**: OpenAlex IDs (e.g., `W2964141474` or full URL `https://openalex.org/W2964141474`)
-- **Batching**: The API supports filtering by multiple IDs using `|` separator for efficient bulk lookups
-- **Referenced Works**: The `referenced_works` field contains a list of OpenAlex IDs that need separate lookup
-- **Documentation**: https://docs.openalex.org
+- **No authentication required** for basic usage (rate limits apply)
+- **Rate Limit**: ~100 requests per 5 minutes for anonymous requests
+- **Paper ID Format**: Semantic Scholar paper IDs (not DOIs or arXiv IDs directly)
+- **Fields Parameter**: Explicitly specify fields to reduce response size and improve performance
+- **Documentation**: https://api.semanticscholar.org/api-docs/graph
 
-The code fetches `referenced_works` (papers that the queried paper *cites*), not papers that cite it (which would be `cited_by_count`). This creates a backward-looking citation graph. Citations are fetched in batches of 50 for efficiency.
+The `references` endpoint returns papers that the queried paper *cites*, not papers that cite it (which would be the `citations` endpoint). This distinction is crucial for understanding the graph structure.

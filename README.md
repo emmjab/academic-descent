@@ -8,7 +8,7 @@ A web application for exploring academic paper citation graphs. Enter a paper ti
 - Visualize citation networks as interactive graphs
 - Click on any paper to view its citations
 - Hierarchical layout showing citation relationships
-- Uses the OpenAlex API for paper data
+- Uses the Semantic Scholar API for paper data
 
 ## Setup
 
@@ -145,7 +145,7 @@ Get citations for a specific paper.
 
 - **Backend**: Flask (Python web framework)
 - **Frontend**: Vanilla JavaScript with vis.js for graph visualization
-- **API**: OpenAlex API for paper data (free, no authentication required)
+- **API**: Semantic Scholar API for paper data
 - **Testing**: pytest
 - **Code Quality**: Black (formatter), Flake8 (linter)
 
