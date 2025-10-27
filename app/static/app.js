@@ -145,7 +145,6 @@ async function searchPaper() {
             authors: paper.authors,
             year: paper.year,
             citationCount: paper.citationCount,
-            level: 0,
             color: {
                 background: '#667eea',
                 border: '#764ba2'
