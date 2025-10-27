@@ -1,4 +1,4 @@
-"""Backend API for fetching paper citations using Semantic Scholar API."""
+"""Backend API for fetching paper citations using OpenAlex API."""
 
 import requests
 from flask import Flask, jsonify, render_template, request
@@ -7,11 +7,36 @@ from flask_cors import CORS
 app = Flask(__name__)
 CORS(app)
 
-SEMANTIC_SCHOLAR_API = "https://api.semanticscholar.org/graph/v1"
+OPENALEX_API = "https://api.openalex.org"
+
+
+def format_paper(work):
+    """Format OpenAlex work data to a standard structure.
+
+    Args:
+        work: OpenAlex work object
+
+    Returns:
+        Formatted paper data
+    """
+    authors = []
+    if work.get("authorships"):
+        for authorship in work["authorships"]:
+            author = authorship.get("author", {})
+            if author and author.get("display_name"):
+                authors.append({"name": author["display_name"]})
+
+    return {
+        "paperId": work.get("id", "").replace("https://openalex.org/", ""),
+        "title": work.get("title", "Unknown Title"),
+        "authors": authors,
+        "year": work.get("publication_year"),
+        "citationCount": work.get("cited_by_count", 0)
+    }
 
 
 def search_paper(title):
-    """Search for a paper by title using Semantic Scholar API.
+    """Search for a paper by title using OpenAlex API.
 
     Args:
         title: The paper title to search for
@@ -19,11 +44,10 @@ def search_paper(title):
     Returns:
         Paper data including paperId, title, and authors, or None if not found
     """
-    url = f"{SEMANTIC_SCHOLAR_API}/paper/search"
+    url = f"{OPENALEX_API}/works"
     params = {
-        "query": title,
-        "limit": 1,
-        "fields": "paperId,title,authors,year,citationCount"
+        "search": title,
+        "per_page": 1
     }
 
     try:
@@ -31,8 +55,8 @@ def search_paper(title):
         response.raise_for_status()
         data = response.json()
 
-        if data.get("data") and len(data["data"]) > 0:
-            return data["data"][0]
+        if data.get("results") and len(data["results"]) > 0:
+            return format_paper(data["results"][0])
         return None
     except requests.RequestException as e:
         print(f"Error searching for paper: {e}")
@@ -43,28 +67,45 @@ def get_paper_citations(paper_id):
     """Get citations (references) for a paper.
 
     Args:
-        paper_id: Semantic Scholar paper ID
+        paper_id: OpenAlex work ID
 
     Returns:
         List of cited papers with their metadata
     """
-    url = f"{SEMANTIC_SCHOLAR_API}/paper/{paper_id}/references"
-    params = {
-        "fields": "paperId,title,authors,year,citationCount",
-        "limit": 100
-    }
+    # Ensure the ID has the full OpenAlex URL format
+    if not paper_id.startswith("http"):
+        paper_id = f"https://openalex.org/{paper_id}"
+
+    url = paper_id
+    params = {"select": "id,title,authorships,publication_year,cited_by_count,referenced_works"}
 
     try:
         response = requests.get(url, params=params, timeout=10)
         response.raise_for_status()
-        data = response.json()
+        work = response.json()
 
-        # Extract the cited papers from the response
+        referenced_works = work.get("referenced_works", [])
+
+        if not referenced_works:
+            return []
+
+        # Fetch details for referenced works (up to 50 at a time due to API limits)
         citations = []
-        for item in data.get("data", []):
-            cited_paper = item.get("citedPaper")
-            if cited_paper:
-                citations.append(cited_paper)
+        batch_size = 50
+
+        for i in range(0, min(len(referenced_works), 100), batch_size):
+            batch = referenced_works[i:i + batch_size]
+            filter_ids = "|".join([ref.replace("https://openalex.org/", "") for ref in batch])
+
+            works_url = f"{OPENALEX_API}/works"
+            works_params = {"filter": f"openalex_id:{filter_ids}", "per_page": batch_size}
+
+            batch_response = requests.get(works_url, params=works_params, timeout=10)
+            batch_response.raise_for_status()
+            batch_data = batch_response.json()
+
+            for result in batch_data.get("results", []):
+                citations.append(format_paper(result))
 
         return citations
     except requests.RequestException as e:
