@@ -1,0 +1,17 @@
+[project]
+name = "academic-descent"
+version = "0.1.0"
+description = "A web app for exploring academic paper citation graphs"
+requires-python = ">=3.9"
+authors = [
+    {name = "Emma"}
+]
+
+[tool.black]
+line-length = 100
+target-version = ['py39', 'py310', 'py311', 'py312']
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_functions = ["test_*"]

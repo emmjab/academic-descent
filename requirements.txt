@@ -1,0 +1,11 @@
+# Web Framework
+flask==3.0.0
+flask-cors==4.0.0
+
+# HTTP Requests
+requests==2.31.0
+
+# Development
+pytest==7.4.3
+black==23.12.1
+flake8==7.0.0
