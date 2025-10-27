@@ -188,12 +188,20 @@ async function loadCitations(paperId, paperTitle) {
         }
 
         const data = await response.json();
-        const citations = data.citations;
+        let citations = data.citations;
 
         if (citations.length === 0) {
             showStatus('No citations found for this paper', 'info');
             return;
         }
+
+        // Sort citations by year (oldest to newest, left to right)
+        // Papers without years go to the end
+        citations.sort((a, b) => {
+            const yearA = a.year || 9999;
+            const yearB = b.year || 9999;
+            return yearA - yearB;
+        });
 
         // Add citation nodes and edges
         citations.forEach(citation => {
