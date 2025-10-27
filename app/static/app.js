@@ -13,11 +13,12 @@ function initNetwork() {
             shape: 'box',
             margin: 10,
             widthConstraint: {
-                maximum: 200
+                maximum: 250
             },
             font: {
-                size: 14,
-                color: '#333'
+                size: 12,
+                color: '#333',
+                multi: true
             },
             color: {
                 border: '#667eea',
@@ -36,14 +37,14 @@ function initNetwork() {
             },
             smooth: {
                 type: 'cubicBezier',
-                forceDirection: 'horizontal'
+                forceDirection: 'vertical'
             }
         },
         layout: {
             hierarchical: {
-                direction: 'LR',
+                direction: 'UD',
                 sortMethod: 'directed',
-                levelSeparation: 250,
+                levelSeparation: 200,
                 nodeSpacing: 150
             }
         },
@@ -95,6 +96,7 @@ function displayPaperInfo(paper) {
         ? paper.authors.map(a => a.name).join(', ')
         : 'Unknown';
     const year = paper.year || 'Unknown';
+    const venue = paper.venue || 'Unknown';
     const citationCount = paper.citationCount !== undefined && paper.citationCount !== null
         ? paper.citationCount
         : 'Unknown';
@@ -104,6 +106,7 @@ function displayPaperInfo(paper) {
         <p class="paper-meta">
             <strong>Authors:</strong> ${authors}<br>
             <strong>Year:</strong> ${year}<br>
+            <strong>Venue:</strong> ${venue}<br>
             <strong>Citations:</strong> ${citationCount}
         </p>
     `;
@@ -140,17 +143,19 @@ async function searchPaper() {
         // Add root node
         nodes.add({
             id: paper.paperId,
-            label: truncateText(paper.title, 60),
+            label: formatNodeLabel(paper),
             title: paper.title,
             authors: paper.authors,
             year: paper.year,
+            venue: paper.venue,
             citationCount: paper.citationCount,
             color: {
                 background: '#667eea',
                 border: '#764ba2'
             },
             font: {
-                color: '#ffffff'
+                color: '#ffffff',
+                align: 'center'
             }
         });
 
@@ -201,11 +206,15 @@ async function loadCitations(paperId, paperTitle) {
             if (!nodes.get(citation.paperId)) {
                 nodes.add({
                     id: citation.paperId,
-                    label: truncateText(citation.title, 60),
+                    label: formatNodeLabel(citation),
                     title: citation.title || 'Unknown Title',
                     authors: citation.authors || [],
                     year: citation.year || null,
-                    citationCount: citation.citationCount || 0
+                    venue: citation.venue || null,
+                    citationCount: citation.citationCount || 0,
+                    font: {
+                        align: 'center'
+                    }
                 });
             }
 
@@ -231,6 +240,22 @@ function truncateText(text, maxLength) {
         return text;
     }
     return text.substring(0, maxLength) + '...';
+}
+
+// Format node label with title, year, and venue
+function formatNodeLabel(paper) {
+    const title = truncateText(paper.title || 'Unknown Title', 50);
+    const year = paper.year ? `(${paper.year})` : '';
+    const venue = paper.venue ? truncateText(paper.venue, 40) : '';
+
+    let label = `<b>${title}</b>`;
+    if (year) {
+        label += `\n${year}`;
+    }
+    if (venue) {
+        label += `\n<i>${venue}</i>`;
+    }
+    return label;
 }
 
 // Event listeners
