@@ -1,5 +1,6 @@
 """Backend API for fetching paper citations using Semantic Scholar API."""
 
+import os
 import requests
 from flask import Flask, jsonify, render_template, request
 from flask_cors import CORS
@@ -8,6 +9,15 @@ app = Flask(__name__)
 CORS(app)
 
 SEMANTIC_SCHOLAR_API = "https://api.semanticscholar.org/graph/v1"
+SEMANTIC_SCHOLAR_API_KEY = os.environ.get("SEMANTIC_SCHOLAR_API_KEY")
+
+
+def get_headers():
+    """Get request headers with optional API key."""
+    headers = {}
+    if SEMANTIC_SCHOLAR_API_KEY:
+        headers["x-api-key"] = SEMANTIC_SCHOLAR_API_KEY
+    return headers
 
 
 def search_paper(title):
@@ -27,12 +37,17 @@ def search_paper(title):
     }
 
     try:
-        response = requests.get(url, params=params, timeout=10)
+        response = requests.get(url, params=params, headers=get_headers(), timeout=10)
         response.raise_for_status()
         data = response.json()
 
         if data.get("data") and len(data["data"]) > 0:
             return data["data"][0]
+        return None
+    except requests.HTTPError as e:
+        if e.response.status_code == 429:
+            print("Rate limit exceeded. Consider getting a free API key from Semantic Scholar.")
+        print(f"Error searching for paper: {e}")
         return None
     except requests.RequestException as e:
         print(f"Error searching for paper: {e}")
@@ -55,7 +70,7 @@ def get_paper_citations(paper_id):
     }
 
     try:
-        response = requests.get(url, params=params, timeout=10)
+        response = requests.get(url, params=params, headers=get_headers(), timeout=10)
         response.raise_for_status()
         data = response.json()
 
@@ -67,6 +82,11 @@ def get_paper_citations(paper_id):
                 citations.append(cited_paper)
 
         return citations
+    except requests.HTTPError as e:
+        if e.response.status_code == 429:
+            print("Rate limit exceeded. Consider getting a free API key from Semantic Scholar.")
+        print(f"Error fetching citations: {e}")
+        return []
     except requests.RequestException as e:
         print(f"Error fetching citations: {e}")
         return []
