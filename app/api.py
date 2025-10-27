@@ -32,8 +32,8 @@ def search_paper(title):
     url = f"{SEMANTIC_SCHOLAR_API}/paper/search"
     params = {
         "query": title,
-        "limit": 1,
-        "fields": "paperId,title,authors,year,citationCount"
+        "limit": 3,  # Get top 3 results to find one with references
+        "fields": "paperId,title,authors,year,citationCount,referenceCount"
     }
 
     try:
@@ -42,7 +42,16 @@ def search_paper(title):
         data = response.json()
 
         if data.get("data") and len(data["data"]) > 0:
-            return data["data"][0]
+            # Prefer papers that have references
+            papers = data["data"]
+            for paper in papers:
+                if paper.get("referenceCount", 0) > 0:
+                    print(f"Found paper: {paper['title']} (ID: {paper['paperId']}, References: {paper.get('referenceCount', 0)})")
+                    return paper
+
+            # If none have references, return first result
+            print(f"Warning: No papers found with references. Using: {papers[0]['title']}")
+            return papers[0]
         return None
     except requests.HTTPError as e:
         if e.response.status_code == 429:
@@ -70,6 +79,7 @@ def get_paper_citations(paper_id):
     }
 
     try:
+        print(f"Fetching references for paper ID: {paper_id}")
         response = requests.get(url, params=params, headers=get_headers(), timeout=10)
         response.raise_for_status()
         data = response.json()
@@ -81,6 +91,7 @@ def get_paper_citations(paper_id):
             if cited_paper:
                 citations.append(cited_paper)
 
+        print(f"Found {len(citations)} references for paper {paper_id}")
         return citations
     except requests.HTTPError as e:
         if e.response.status_code == 429:
