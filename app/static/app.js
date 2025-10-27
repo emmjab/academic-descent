@@ -91,12 +91,16 @@ function showStatus(message, type = 'info') {
 // Display paper information
 function displayPaperInfo(paper) {
     const detailsEl = document.getElementById('paper-details');
-    const authors = paper.authors ? paper.authors.map(a => a.name).join(', ') : 'Unknown';
+    const authors = paper.authors && paper.authors.length > 0
+        ? paper.authors.map(a => a.name).join(', ')
+        : 'Unknown';
     const year = paper.year || 'Unknown';
-    const citationCount = paper.citationCount !== undefined ? paper.citationCount : 'Unknown';
+    const citationCount = paper.citationCount !== undefined && paper.citationCount !== null
+        ? paper.citationCount
+        : 'Unknown';
 
     detailsEl.innerHTML = `
-        <div class="paper-title">${paper.title}</div>
+        <div class="paper-title">${paper.title || 'Unknown Title'}</div>
         <p class="paper-meta">
             <strong>Authors:</strong> ${authors}<br>
             <strong>Year:</strong> ${year}<br>
@@ -189,14 +193,20 @@ async function loadCitations(paperId, paperTitle) {
 
         // Add citation nodes and edges
         citations.forEach(citation => {
+            // Skip citations with missing required fields
+            if (!citation.paperId || !citation.title) {
+                console.warn('Skipping citation with missing data:', citation);
+                return;
+            }
+
             if (!nodes.get(citation.paperId)) {
                 nodes.add({
                     id: citation.paperId,
                     label: truncateText(citation.title, 60),
-                    title: citation.title,
-                    authors: citation.authors,
-                    year: citation.year,
-                    citationCount: citation.citationCount
+                    title: citation.title || 'Unknown Title',
+                    authors: citation.authors || [],
+                    year: citation.year || null,
+                    citationCount: citation.citationCount || 0
                 });
             }
 
@@ -210,8 +220,9 @@ async function loadCitations(paperId, paperTitle) {
         showStatus(`Loaded ${citations.length} citations`, 'success');
 
     } catch (error) {
-        console.error('Error:', error);
-        showStatus('An error occurred while loading citations', 'error');
+        console.error('Error loading citations:', error);
+        console.error('Error details:', error.message, error.stack);
+        showStatus(`An error occurred while loading citations: ${error.message}`, 'error');
     }
 }
 
