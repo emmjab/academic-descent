@@ -8,7 +8,7 @@ A web application for exploring academic paper citation graphs. Enter a paper ti
 - Visualize citation networks as interactive graphs
 - Click on any paper to view its citations
 - Hierarchical layout showing citation relationships
-- Uses the Semantic Scholar API for paper data
+- Uses the OpenAlex API for paper data (free, no authentication required)
 
 ## Setup
 
@@ -36,12 +36,6 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-4. (Optional but recommended) Set up Semantic Scholar API key:
-   - Get a free API key at https://www.semanticscholar.org/product/api
-   - Create a `.env` file in the project root (copy from `.env.example`)
-   - Add your API key: `SEMANTIC_SCHOLAR_API_KEY=your_key_here`
-   - This increases rate limits and provides more stable access
-
 ## Running the Application
 
 ### Development Server
@@ -49,15 +43,10 @@ pip install -r requirements.txt
 Start the Flask development server:
 
 ```bash
-# If using API key from .env file
-export SEMANTIC_SCHOLAR_API_KEY=your_key_here  # Optional
-
 python -m app.api
 ```
 
 The application will be available at http://localhost:5000
-
-**Note**: Without an API key, you're limited to ~100 requests per 5 minutes. If you hit rate limits, wait 5 minutes or add an API key.
 
 ### Using the App
 
@@ -156,7 +145,7 @@ Get citations for a specific paper.
 
 - **Backend**: Flask (Python web framework)
 - **Frontend**: Vanilla JavaScript with vis.js for graph visualization
-- **API**: Semantic Scholar API for paper data
+- **API**: OpenAlex API for paper data (100,000 requests/day, no authentication)
 - **Testing**: pytest
 - **Code Quality**: Black (formatter), Flake8 (linter)
 
