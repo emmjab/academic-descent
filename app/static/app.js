@@ -5,6 +5,8 @@ let edges = new vis.DataSet([]);
 let expandedPapers = new Set(); // Track which papers are currently expanded
 let paperChildren = {}; // Track children of each paper for collapsing
 let citationCache = {}; // Cache fetched citation data to avoid re-fetching
+let paperOccurrences = {}; // Track how many times each paper appears in the graph
+let nodeLevels = {}; // Track the hierarchical level (depth) of each node
 
 // Initialize the network graph
 function initNetwork() {
@@ -74,8 +76,9 @@ function initNetwork() {
                 // Collapse: remove children
                 collapseCitations(nodeId);
             } else {
-                // Expand: load citations
-                loadCitations(nodeId, node.title);
+                // Expand: load citations using the original paper ID
+                const actualPaperId = node.paperId || nodeId;
+                loadCitations(nodeId, node.title, actualPaperId);
             }
         }
     });
@@ -153,8 +156,10 @@ async function searchPaper() {
         expandedPapers.clear();
         paperChildren = {};
         citationCache = {};
+        paperOccurrences = {};
+        nodeLevels = {};
 
-        // Add root node
+        // Add root node at level 0
         nodes.add({
             id: paper.paperId,
             label: formatNodeLabel(paper),
@@ -163,6 +168,8 @@ async function searchPaper() {
             year: paper.year,
             venue: paper.venue,
             citationCount: paper.citationCount,
+            paperId: paper.paperId, // Store original paper ID
+            level: 0, // Root is at level 0
             color: {
                 background: '#667eea',
                 border: '#764ba2'
@@ -172,6 +179,10 @@ async function searchPaper() {
                 align: 'center'
             }
         });
+
+        // Track this as first occurrence and its level
+        paperOccurrences[paper.paperId] = 1;
+        nodeLevels[paper.paperId] = 0;
 
         displayPaperInfo(paper);
 
@@ -213,23 +224,26 @@ function collapseCitations(paperId) {
 }
 
 // Load citations for a paper
-async function loadCitations(paperId, paperTitle) {
-    if (expandedPapers.has(paperId)) {
+async function loadCitations(nodeId, paperTitle, actualPaperId = null) {
+    // Use actualPaperId for API calls, nodeId for tracking expansion state
+    const apiPaperId = actualPaperId || nodeId;
+
+    if (expandedPapers.has(nodeId)) {
         return;
     }
 
     let citations;
 
-    // Check if we have cached data
-    if (citationCache[paperId]) {
-        showStatus(`Showing ${citationCache[paperId].length} cached citations...`, 'info');
-        citations = citationCache[paperId];
+    // Check if we have cached data using the actual paper ID
+    if (citationCache[apiPaperId]) {
+        showStatus(`Showing ${citationCache[apiPaperId].length} cached citations...`, 'info');
+        citations = citationCache[apiPaperId];
     } else {
         // Fetch from API
         showStatus(`Loading citations for "${paperTitle}"...`, 'info');
 
         try {
-            const response = await fetch(`/api/citations/${paperId}`);
+            const response = await fetch(`/api/citations/${apiPaperId}`);
 
             if (!response.ok) {
                 showStatus('Error loading citations', 'error');
@@ -242,9 +256,9 @@ async function loadCitations(paperId, paperTitle) {
             if (citations.length === 0) {
                 showStatus('No citations found for this paper', 'info');
                 // Cache empty result so we don't fetch again
-                citationCache[paperId] = [];
-                expandedPapers.add(paperId);
-                paperChildren[paperId] = [];
+                citationCache[apiPaperId] = [];
+                expandedPapers.add(nodeId);
+                paperChildren[nodeId] = [];
                 return;
             }
 
@@ -257,7 +271,7 @@ async function loadCitations(paperId, paperTitle) {
             });
 
             // Cache the sorted citations
-            citationCache[paperId] = citations;
+            citationCache[apiPaperId] = citations;
 
         } catch (error) {
             console.error('Error loading citations:', error);
@@ -270,6 +284,10 @@ async function loadCitations(paperId, paperTitle) {
     // Track children for this paper
     const childIds = [];
 
+    // Get the parent's level and calculate child level
+    const parentLevel = nodeLevels[nodeId] !== undefined ? nodeLevels[nodeId] : 0;
+    const childLevel = parentLevel + 1;
+
     // Add citation nodes and edges
     citations.forEach(citation => {
         // Skip citations with missing required fields
@@ -278,39 +296,70 @@ async function loadCitations(paperId, paperTitle) {
             return;
         }
 
-        if (!nodes.get(citation.paperId)) {
-            nodes.add({
-                id: citation.paperId,
-                label: formatNodeLabel(citation),
-                title: citation.title || 'Unknown Title',
-                authors: citation.authors || [],
-                year: citation.year || null,
-                venue: citation.venue || null,
-                citationCount: citation.citationCount || 0,
-                font: {
-                    align: 'center'
-                }
-            });
-        }
+        // Create unique node ID for this parent-child relationship
+        const uniqueNodeId = `${nodeId}_${citation.paperId}`;
 
-        // Add edge from parent to citation
-        edges.add({
-            from: paperId,
-            to: citation.paperId
+        // Track if this paper has appeared before
+        const occurrenceCount = paperOccurrences[citation.paperId] || 0;
+        paperOccurrences[citation.paperId] = occurrenceCount + 1;
+        const isDuplicate = occurrenceCount > 0;
+
+        // Determine node color based on whether it's a duplicate
+        const nodeColor = isDuplicate
+            ? {
+                background: '#e0e7ff',  // Lighter shade for duplicates
+                border: '#a5b4fc'        // Lighter border
+              }
+            : {
+                background: '#f0f4ff',
+                border: '#667eea'
+              };
+
+        nodes.add({
+            id: uniqueNodeId,
+            label: formatNodeLabel(citation),
+            title: citation.title || 'Unknown Title',
+            authors: citation.authors || [],
+            year: citation.year || null,
+            venue: citation.venue || null,
+            citationCount: citation.citationCount || 0,
+            paperId: citation.paperId, // Store original paper ID
+            level: childLevel, // Set explicit level based on parent
+            color: nodeColor,
+            font: {
+                align: 'center'
+            }
         });
 
-        // Track this child
-        childIds.push(citation.paperId);
+        // Track this child's level
+        nodeLevels[uniqueNodeId] = childLevel;
+
+        // Add edge from parent to citation
+        const edgeId = `${nodeId}->${uniqueNodeId}`;
+        edges.add({
+            id: edgeId,
+            from: nodeId,
+            to: uniqueNodeId
+        });
+
+        // Track this child by its unique node ID
+        childIds.push(uniqueNodeId);
     });
 
     // Mark paper as expanded and save its children
-    expandedPapers.add(paperId);
-    paperChildren[paperId] = childIds;
+    expandedPapers.add(nodeId);
+    paperChildren[nodeId] = childIds;
 
-    const statusMsg = citationCache[paperId] && citations.length > 0
+    const statusMsg = citationCache[apiPaperId] && citations.length > 0
         ? `Showing ${citations.length} citations (cached)`
         : `Loaded ${citations.length} citations`;
     showStatus(statusMsg, 'success');
+
+    // Debug: Log graph structure
+    console.log(`Added ${childIds.length} children at level ${childLevel} for node ${nodeId} (paper ${apiPaperId}, level ${parentLevel})`);
+    console.log('Total nodes:', nodes.length);
+    console.log('Total edges:', edges.length);
+    console.log('Edges from this node:', edges.get({ filter: (e) => e.from === nodeId }).length);
 }
 
 // Utility function to truncate text
