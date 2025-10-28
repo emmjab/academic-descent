@@ -196,13 +196,20 @@ function initNetwork() {
     // Check bounds after dragging ends
     network.on('dragEnd', function() {
         console.log('dragEnd event fired');
-        checkViewBounds();
+        // Small delay to let vis.js finish updating view position
+        setTimeout(checkViewBounds, 10);
     });
 
     // Check bounds after animation finishes (for navigation buttons)
     network.on('animationFinished', function() {
         console.log('animationFinished event fired');
-        checkViewBounds();
+        setTimeout(checkViewBounds, 10);
+    });
+
+    // Also check on release event (backup for canvas dragging)
+    network.on('release', function() {
+        console.log('release event fired');
+        setTimeout(checkViewBounds, 10);
     });
 
     // Handle node clicks
