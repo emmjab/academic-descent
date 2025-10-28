@@ -12,12 +12,46 @@
         <header>
             <h1>Academic Descent</h1>
             <p>Explore academic paper citation graphs</p>
+            <a href="#" id="about-link" class="about-link">About</a>
         </header>
 
+        <div id="about-section" class="about-section" style="display: none;">
+            <h3>About Academic Descent</h3>
+            <p>
+                Academic Descent is a tool for exploring academic paper citation networks.
+                Enter a paper title to visualize which papers it cites (its references),
+                then click on any citation to explore deeper into the network.
+            </p>
+            <p>
+                <strong>How to use:</strong>
+            </p>
+            <ul>
+                <li>Search for a paper by entering its title in the search box</li>
+                <li>Click on any node to view paper details and expand its citations</li>
+                <li>Pan by dragging the graph, zoom with your mouse wheel</li>
+                <li>Click a node again to collapse its citations</li>
+                <li>Papers are ordered left-to-right by publication date (oldest to newest)</li>
+            </ul>
+            <p>
+                <strong>Node colors:</strong>
+            </p>
+            <ul>
+                <li><span style="color: #667eea;">●</span> Blue - Root paper you searched for</li>
+                <li><span style="color: #667eea;">●</span> Light blue - Papers with citations to explore</li>
+                <li><span style="color: #a5b4fc;">●</span> Lighter blue - Duplicate papers (appearing multiple times)</li>
+                <li><span style="color: #9ca3af;">●</span> Gray - Leaf nodes (no citations available)</li>
+            </ul>
+            <p>
+                <strong>Data source:</strong> All paper data comes from <a href="https://openalex.org" target="_blank" rel="noopener noreferrer">OpenAlex</a>,
+                a free and open catalog of the world's scholarly research.
+            </p>
+        </div>
+
         <div class="search-container">
-            <input type="text" id="paper-title" placeholder="Enter paper title..." />
+            <input type="text" id="paper-title" placeholder="Enter a paper title (e.g., &quot;Attention is All You Need&quot;)" />
             <button id="search-btn">Search</button>
         </div>
+        <p class="search-help">Enter the title of an academic paper to visualize its citation network</p>
 
         <div id="status-message"></div>
 

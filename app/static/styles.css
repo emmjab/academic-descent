@@ -31,6 +31,56 @@ header h1 {
 header p {
     font-size: 1.2rem;
     opacity: 0.9;
+    margin-bottom: 10px;
+}
+
+.about-link {
+    display: inline-block;
+    color: white;
+    text-decoration: none;
+    font-size: 1rem;
+    padding: 8px 20px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 20px;
+    transition: background 0.3s;
+    margin-top: 10px;
+}
+
+.about-link:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.about-section {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+    color: #333;
+}
+
+.about-section h3 {
+    color: #667eea;
+    margin-bottom: 15px;
+}
+
+.about-section p {
+    margin-bottom: 12px;
+    line-height: 1.6;
+}
+
+.about-section ul {
+    margin: 10px 0 15px 25px;
+    line-height: 1.8;
+}
+
+.about-section a {
+    color: #667eea;
+    text-decoration: none;
+}
+
+.about-section a:hover {
+    text-decoration: underline;
 }
 
 .search-container {
@@ -75,6 +125,14 @@ header p {
 
 #search-btn:active {
     transform: translateY(0);
+}
+
+.search-help {
+    color: white;
+    text-align: center;
+    font-size: 0.9rem;
+    margin: -10px 0 20px 0;
+    opacity: 0.9;
 }
 
 #status-message {

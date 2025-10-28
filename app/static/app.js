@@ -334,6 +334,7 @@ async function searchPaper() {
             year: paper.year,
             venue: paper.venue,
             citationCount: paper.citationCount,
+            referenceCount: paper.referenceCount || 0,
             url: paper.url || null, // Store paper URL
             paperId: paper.paperId, // Store original paper ID
             level: 0, // Root is at level 0
@@ -470,17 +471,29 @@ async function loadCitations(nodeId, paperTitle, actualPaperId = null) {
         const occurrenceCount = paperOccurrences[citation.paperId] || 0;
         paperOccurrences[citation.paperId] = occurrenceCount + 1;
         const isDuplicate = occurrenceCount > 0;
+        const hasNoReferences = (citation.referenceCount || 0) === 0;
 
-        // Determine node color based on whether it's a duplicate
-        const nodeColor = isDuplicate
-            ? {
-                background: '#e0e7ff',  // Lighter shade for duplicates
-                border: '#a5b4fc'        // Lighter border
-              }
-            : {
+        // Determine node color based on duplicate status and reference count
+        let nodeColor;
+        if (hasNoReferences) {
+            // Gray color for leaf nodes (no citations to explore)
+            nodeColor = {
+                background: '#d1d5db',  // Gray for no references
+                border: '#9ca3af'
+            };
+        } else if (isDuplicate) {
+            // Lighter shade for duplicates
+            nodeColor = {
+                background: '#e0e7ff',
+                border: '#a5b4fc'
+            };
+        } else {
+            // Normal color
+            nodeColor = {
                 background: '#f0f4ff',
                 border: '#667eea'
-              };
+            };
+        }
 
         nodes.add({
             id: uniqueNodeId,
@@ -490,6 +503,7 @@ async function loadCitations(nodeId, paperTitle, actualPaperId = null) {
             year: citation.year || null,
             venue: citation.venue || null,
             citationCount: citation.citationCount || 0,
+            referenceCount: citation.referenceCount || 0,
             url: citation.url || null, // Store paper URL
             paperId: citation.paperId, // Store original paper ID
             level: childLevel, // Set explicit level based on parent
@@ -559,6 +573,17 @@ document.getElementById('search-btn').addEventListener('click', searchPaper);
 document.getElementById('paper-title').addEventListener('keypress', (e) => {
     if (e.key === 'Enter') {
         searchPaper();
+    }
+});
+
+// About section toggle
+document.getElementById('about-link').addEventListener('click', (e) => {
+    e.preventDefault();
+    const aboutSection = document.getElementById('about-section');
+    if (aboutSection.style.display === 'none') {
+        aboutSection.style.display = 'block';
+    } else {
+        aboutSection.style.display = 'none';
     }
 });
 
