@@ -78,6 +78,10 @@ function initNetwork() {
         }
     });
 
+    // Track last zoom time to debounce bounds checking
+    let lastZoomTime = 0;
+    let zoomCheckTimeout = null;
+
     // Add zoom constraints after initialization
     network.on('zoom', function(params) {
         const scale = network.getScale();
@@ -93,6 +97,19 @@ function initNetwork() {
                 scale: 5.0
             });
         }
+
+        // Debounce bounds checking - only check after zooming stops
+        lastZoomTime = Date.now();
+        if (zoomCheckTimeout) {
+            clearTimeout(zoomCheckTimeout);
+        }
+        zoomCheckTimeout = setTimeout(() => {
+            // Check if zooming has stopped (no zoom events for 100ms)
+            if (Date.now() - lastZoomTime >= 100) {
+                console.log('Zoom completed, checking bounds');
+                checkViewBounds();
+            }
+        }, 100);
     });
 
     // Function to check and constrain view bounds
