@@ -38,15 +38,15 @@ function initNetwork() {
             },
             smooth: {
                 type: 'cubicBezier',
-                forceDirection: 'vertical'
+                forceDirection: 'horizontal'
             }
         },
         layout: {
             hierarchical: {
-                direction: 'UD',
+                direction: 'LR',
                 sortMethod: 'directed',
-                levelSeparation: 200,
-                nodeSpacing: 150
+                levelSeparation: 250,
+                nodeSpacing: 100
             }
         },
         physics: {
@@ -186,10 +186,6 @@ async function searchPaper() {
 function collapseCitations(paperId) {
     const children = paperChildren[paperId] || [];
 
-    if (children.length === 0) {
-        return;
-    }
-
     // Remove edges from this paper to its children
     const edgesToRemove = edges.get({
         filter: (edge) => edge.from === paperId
@@ -210,7 +206,9 @@ function collapseCitations(paperId) {
     paperChildren[paperId] = [];
     expandedPapers.delete(paperId);
 
-    showStatus(`Collapsed citations`, 'info');
+    if (children.length > 0) {
+        showStatus(`Collapsed ${children.length} citations`, 'info');
+    }
 }
 
 // Load citations for a paper
