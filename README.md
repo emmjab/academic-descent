@@ -46,7 +46,7 @@ Start the Flask development server:
 python -m app.api
 ```
 
-The application will be available at http://localhost:5000
+The application will be available at http://localhost:5001
 
 ### Using the App
 
