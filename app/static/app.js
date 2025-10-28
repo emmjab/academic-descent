@@ -97,11 +97,19 @@ function initNetwork() {
 
     // Function to check and constrain view bounds
     function checkViewBounds() {
-        if (nodes.length === 0) return;
+        if (nodes.length === 0) {
+            console.log('No nodes, skipping bounds check');
+            return;
+        }
 
         try {
             const bounds = network.getBoundingBox();
-            if (!bounds || bounds.left === undefined) return;
+            console.log('Bounds:', bounds);
+
+            if (!bounds || bounds.left === undefined) {
+                console.log('Invalid bounds, skipping');
+                return;
+            }
 
             const viewPosition = network.getViewPosition();
             const scale = network.getScale();
@@ -119,47 +127,59 @@ function initNetwork() {
             const viewTop = viewPosition.y - visibleHeight / 2;
             const viewBottom = viewPosition.y + visibleHeight / 2;
 
+            console.log('View edges:', { viewLeft, viewRight, viewTop, viewBottom });
+            console.log('Graph bounds:', { left: bounds.left, right: bounds.right, top: bounds.top, bottom: bounds.bottom });
+
             let newX = viewPosition.x;
             let newY = viewPosition.y;
             let needsAdjustment = false;
 
             // Check if completely off screen horizontally
             if (viewRight < bounds.left) {
+                console.log('Completely off left');
                 newX = bounds.left - visibleWidth / 2;
                 needsAdjustment = true;
             } else if (viewLeft > bounds.right) {
+                console.log('Completely off right');
                 newX = bounds.right + visibleWidth / 2;
                 needsAdjustment = true;
             }
 
             // Check if completely off screen vertically
             if (viewBottom < bounds.top) {
+                console.log('Completely off top');
                 newY = bounds.top - visibleHeight / 2;
                 needsAdjustment = true;
             } else if (viewTop > bounds.bottom) {
+                console.log('Completely off bottom');
                 newY = bounds.bottom + visibleHeight / 2;
                 needsAdjustment = true;
             }
 
             if (needsAdjustment) {
+                console.log('Adjusting view to:', { x: newX, y: newY });
                 network.moveTo({
                     position: { x: newX, y: newY },
                     scale: scale,
                     animation: false
                 });
+            } else {
+                console.log('No adjustment needed');
             }
         } catch (e) {
-            // Silently ignore errors
+            console.error('Error in bounds check:', e);
         }
     }
 
     // Check bounds after dragging ends
     network.on('dragEnd', function() {
+        console.log('dragEnd event fired');
         checkViewBounds();
     });
 
     // Check bounds after animation finishes (for navigation buttons)
     network.on('animationFinished', function() {
+        console.log('animationFinished event fired');
         checkViewBounds();
     });
 
