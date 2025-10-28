@@ -150,3 +150,15 @@ header p {
     color: #666;
     font-size: 0.9rem;
 }
+
+.paper-meta a {
+    color: #667eea;
+    text-decoration: none;
+    font-weight: 600;
+    transition: color 0.2s;
+}
+
+.paper-meta a:hover {
+    color: #764ba2;
+    text-decoration: underline;
+}

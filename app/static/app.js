@@ -101,13 +101,19 @@ function displayPaperInfo(paper) {
         ? paper.citationCount
         : 'Unknown';
 
+    let urlLink = '';
+    if (paper.url) {
+        urlLink = `<strong>Link:</strong> <a href="${paper.url}" target="_blank" rel="noopener noreferrer">View Paper</a><br>`;
+    }
+
     detailsEl.innerHTML = `
         <div class="paper-title">${paper.title || 'Unknown Title'}</div>
         <p class="paper-meta">
             <strong>Authors:</strong> ${authors}<br>
             <strong>Year:</strong> ${year}<br>
             <strong>Venue:</strong> ${venue}<br>
-            <strong>Citations:</strong> ${citationCount}
+            <strong>Citations:</strong> ${citationCount}<br>
+            ${urlLink}
         </p>
     `;
 }

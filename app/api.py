@@ -28,9 +28,16 @@ def format_paper(work):
 
     # Extract venue/journal information
     venue = None
+    paper_url = None
     primary_location = work.get("primary_location")
-    if primary_location and primary_location.get("source"):
-        venue = primary_location["source"].get("display_name")
+    if primary_location:
+        if primary_location.get("source"):
+            venue = primary_location["source"].get("display_name")
+        # Prefer DOI, then landing page, then OpenAlex URL
+        paper_url = work.get("doi") or primary_location.get("landing_page_url")
+
+    if not paper_url:
+        paper_url = work.get("id")  # OpenAlex URL as fallback
 
     return {
         "paperId": work.get("id", "").replace("https://openalex.org/", ""),
@@ -39,7 +46,8 @@ def format_paper(work):
         "year": work.get("publication_year"),
         "citationCount": work.get("cited_by_count", 0),
         "referenceCount": work.get("referenced_works_count", 0),
-        "venue": venue
+        "venue": venue,
+        "url": paper_url
     }
 
 
