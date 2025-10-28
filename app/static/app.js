@@ -91,18 +91,6 @@ function initNetwork() {
         }
     });
 
-    // Fit graph to view whenever nodes are added
-    nodes.on('add', function() {
-        setTimeout(() => {
-            network.fit({
-                animation: {
-                    duration: 300,
-                    easingFunction: 'easeInOutQuad'
-                }
-            });
-        }, 100);
-    });
-
     // Handle node clicks
     network.on('click', function(params) {
         if (params.nodes.length > 0) {
