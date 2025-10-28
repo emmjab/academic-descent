@@ -4,6 +4,7 @@ let nodes = new vis.DataSet([]);
 let edges = new vis.DataSet([]);
 let expandedPapers = new Set(); // Track which papers are currently expanded
 let paperChildren = {}; // Track children of each paper for collapsing
+let citationCache = {}; // Cache fetched citation data to avoid re-fetching
 
 // Initialize the network graph
 function initNetwork() {
@@ -151,6 +152,7 @@ async function searchPaper() {
         edges.clear();
         expandedPapers.clear();
         paperChildren = {};
+        citationCache = {};
 
         // Add root node
         nodes.add({
@@ -202,8 +204,7 @@ function collapseCitations(paperId) {
         nodes.remove(childId);
     });
 
-    // Clear children tracking and mark as collapsed
-    paperChildren[paperId] = [];
+    // Mark as collapsed (but keep children tracking and cache for re-expansion)
     expandedPapers.delete(paperId);
 
     if (children.length > 0) {
@@ -217,79 +218,99 @@ async function loadCitations(paperId, paperTitle) {
         return;
     }
 
-    showStatus(`Loading citations for "${paperTitle}"...`, 'info');
+    let citations;
 
-    try {
-        const response = await fetch(`/api/citations/${paperId}`);
+    // Check if we have cached data
+    if (citationCache[paperId]) {
+        showStatus(`Showing ${citationCache[paperId].length} cached citations...`, 'info');
+        citations = citationCache[paperId];
+    } else {
+        // Fetch from API
+        showStatus(`Loading citations for "${paperTitle}"...`, 'info');
 
-        if (!response.ok) {
-            showStatus('Error loading citations', 'error');
-            return;
-        }
+        try {
+            const response = await fetch(`/api/citations/${paperId}`);
 
-        const data = await response.json();
-        let citations = data.citations;
-
-        if (citations.length === 0) {
-            showStatus('No citations found for this paper', 'info');
-            return;
-        }
-
-        // Sort citations by year (oldest to newest, left to right)
-        // Papers without years go to the end
-        citations.sort((a, b) => {
-            const yearA = a.year || 9999;
-            const yearB = b.year || 9999;
-            return yearA - yearB;
-        });
-
-        // Track children for this paper
-        const childIds = [];
-
-        // Add citation nodes and edges
-        citations.forEach(citation => {
-            // Skip citations with missing required fields
-            if (!citation.paperId || !citation.title) {
-                console.warn('Skipping citation with missing data:', citation);
+            if (!response.ok) {
+                showStatus('Error loading citations', 'error');
                 return;
             }
 
-            if (!nodes.get(citation.paperId)) {
-                nodes.add({
-                    id: citation.paperId,
-                    label: formatNodeLabel(citation),
-                    title: citation.title || 'Unknown Title',
-                    authors: citation.authors || [],
-                    year: citation.year || null,
-                    venue: citation.venue || null,
-                    citationCount: citation.citationCount || 0,
-                    font: {
-                        align: 'center'
-                    }
-                });
+            const data = await response.json();
+            citations = data.citations;
+
+            if (citations.length === 0) {
+                showStatus('No citations found for this paper', 'info');
+                // Cache empty result so we don't fetch again
+                citationCache[paperId] = [];
+                expandedPapers.add(paperId);
+                paperChildren[paperId] = [];
+                return;
             }
 
-            // Add edge from parent to citation
-            edges.add({
-                from: paperId,
-                to: citation.paperId
+            // Sort citations by year (oldest to newest, left to right)
+            // Papers without years go to the end
+            citations.sort((a, b) => {
+                const yearA = a.year || 9999;
+                const yearB = b.year || 9999;
+                return yearA - yearB;
             });
 
-            // Track this child
-            childIds.push(citation.paperId);
+            // Cache the sorted citations
+            citationCache[paperId] = citations;
+
+        } catch (error) {
+            console.error('Error loading citations:', error);
+            console.error('Error details:', error.message, error.stack);
+            showStatus(`An error occurred while loading citations: ${error.message}`, 'error');
+            return;
+        }
+    }
+
+    // Track children for this paper
+    const childIds = [];
+
+    // Add citation nodes and edges
+    citations.forEach(citation => {
+        // Skip citations with missing required fields
+        if (!citation.paperId || !citation.title) {
+            console.warn('Skipping citation with missing data:', citation);
+            return;
+        }
+
+        if (!nodes.get(citation.paperId)) {
+            nodes.add({
+                id: citation.paperId,
+                label: formatNodeLabel(citation),
+                title: citation.title || 'Unknown Title',
+                authors: citation.authors || [],
+                year: citation.year || null,
+                venue: citation.venue || null,
+                citationCount: citation.citationCount || 0,
+                font: {
+                    align: 'center'
+                }
+            });
+        }
+
+        // Add edge from parent to citation
+        edges.add({
+            from: paperId,
+            to: citation.paperId
         });
 
-        // Mark paper as expanded and save its children
-        expandedPapers.add(paperId);
-        paperChildren[paperId] = childIds;
+        // Track this child
+        childIds.push(citation.paperId);
+    });
 
-        showStatus(`Loaded ${citations.length} citations (click to collapse)`, 'success');
+    // Mark paper as expanded and save its children
+    expandedPapers.add(paperId);
+    paperChildren[paperId] = childIds;
 
-    } catch (error) {
-        console.error('Error loading citations:', error);
-        console.error('Error details:', error.message, error.stack);
-        showStatus(`An error occurred while loading citations: ${error.message}`, 'error');
-    }
+    const statusMsg = citationCache[paperId] && citations.length > 0
+        ? `Showing ${citations.length} citations (cached)`
+        : `Loaded ${citations.length} citations`;
+    showStatus(statusMsg, 'success');
 }
 
 // Utility function to truncate text
