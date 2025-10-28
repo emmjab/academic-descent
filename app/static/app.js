@@ -83,10 +83,10 @@ function initNetwork() {
                 scale: 0.1
             });
         }
-        // Prevent zooming in too far (maximum scale of 2.5)
-        if (scale > 2.5) {
+        // Prevent zooming in too far (maximum scale of 5.0)
+        if (scale > 5.0) {
             network.moveTo({
-                scale: 2.5
+                scale: 5.0
             });
         }
     });
