@@ -123,16 +123,11 @@ function initNetwork() {
                 maxY = Math.max(maxY, pos.y);
             });
 
-            // Add some margin (node size)
-            const margin = 200;
-            const bounds = {
-                left: minX - margin,
-                right: maxX + margin,
-                top: minY - margin,
-                bottom: maxY + margin
-            };
+            // Estimate node dimensions (nodes can be up to 250 wide, ~100 tall)
+            const nodeWidth = 150;  // Half-width estimate with margin
+            const nodeHeight = 75;  // Half-height estimate with margin
 
-            console.log('Calculated bounds:', bounds);
+            console.log('Extreme node positions:', { minX, maxX, minY, maxY });
 
             const viewPosition = network.getViewPosition();
             const scale = network.getScale();
@@ -151,31 +146,37 @@ function initNetwork() {
             const viewBottom = viewPosition.y + visibleHeight / 2;
 
             console.log('View edges:', { viewLeft, viewRight, viewTop, viewBottom });
+            console.log('Current view position:', viewPosition);
 
-            let newX = viewPosition.x;
-            let newY = viewPosition.y;
-            let needsAdjustment = false;
+            // Calculate boundaries to keep at least one edge node visible
+            // clampMinX: leftmost node's right edge at viewport's right edge
+            // minX + nodeWidth = viewPosition.x + visibleWidth/2
+            const clampMinX = minX + nodeWidth - visibleWidth / 2;
 
-            // Check if completely off screen horizontally
-            if (viewRight < bounds.left) {
-                console.log('Completely off left');
-                newX = bounds.left + visibleWidth / 2;
-                needsAdjustment = true;
-            } else if (viewLeft > bounds.right) {
-                console.log('Completely off right');
-                newX = bounds.right - visibleWidth / 2;
-                needsAdjustment = true;
-            }
+            // clampMaxX: rightmost node's left edge at viewport's left edge
+            // maxX - nodeWidth = viewPosition.x - visibleWidth/2
+            const clampMaxX = maxX - nodeWidth + visibleWidth / 2;
 
-            // Check if completely off screen vertically
-            if (viewBottom < bounds.top) {
-                console.log('Completely off top');
-                newY = bounds.top + visibleHeight / 2;
-                needsAdjustment = true;
-            } else if (viewTop > bounds.bottom) {
-                console.log('Completely off bottom');
-                newY = bounds.bottom - visibleHeight / 2;
-                needsAdjustment = true;
+            // Same logic for Y
+            const clampMinY = minY + nodeHeight - visibleHeight / 2;
+            const clampMaxY = maxY - nodeHeight + visibleHeight / 2;
+
+            console.log('Clamp boundaries:', { clampMinX, clampMaxX, clampMinY, clampMaxY });
+            console.log('Viewport width/height:', { visibleWidth, visibleHeight });
+            console.log('Node size estimates:', { nodeWidth, nodeHeight });
+
+            // Clamp the current position to stay within boundaries
+            let newX = Math.max(clampMinX, Math.min(clampMaxX, viewPosition.x));
+            let newY = Math.max(clampMinY, Math.min(clampMaxY, viewPosition.y));
+
+            let needsAdjustment = (newX !== viewPosition.x || newY !== viewPosition.y);
+
+            if (needsAdjustment) {
+                console.log('Clamping position from', viewPosition, 'to', { x: newX, y: newY });
+                console.log('X clamping:', viewPosition.x, 'between', clampMinX, 'and', clampMaxX);
+                console.log('Y clamping:', viewPosition.y, 'between', clampMinY, 'and', clampMaxY);
+            } else {
+                console.log('No adjustment needed');
             }
 
             if (needsAdjustment) {
