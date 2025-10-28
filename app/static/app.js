@@ -93,7 +93,6 @@ function initNetwork() {
 
     // Add panning constraints to prevent graph from going completely off screen
     network.on('dragEnd', constrainView);
-    network.on('zoom', constrainView);
 
     function constrainView() {
         if (nodes.length === 0) return;
@@ -108,32 +107,30 @@ function initNetwork() {
         const visibleWidth = containerWidth / scale;
         const visibleHeight = containerHeight / scale;
 
-        // Ensure at least 30% of the graph width/height stays visible
-        const minVisibleRatio = 0.3;
-        const graphWidth = bounds.right - bounds.left;
-        const graphHeight = bounds.bottom - bounds.top;
+        // Minimum buffer - just keep an edge visible (50 pixels worth in graph coords)
+        const buffer = 50 / scale;
 
         let newX = viewPosition.x;
         let newY = viewPosition.y;
         let needsAdjustment = false;
 
-        // Check horizontal bounds
-        if (viewPosition.x - visibleWidth / 2 > bounds.right - graphWidth * minVisibleRatio) {
-            newX = bounds.right - graphWidth * minVisibleRatio + visibleWidth / 2;
+        // Check horizontal bounds - ensure left or right edge stays visible
+        if (viewPosition.x - visibleWidth / 2 > bounds.right + buffer) {
+            newX = bounds.right + buffer + visibleWidth / 2;
             needsAdjustment = true;
         }
-        if (viewPosition.x + visibleWidth / 2 < bounds.left + graphWidth * minVisibleRatio) {
-            newX = bounds.left + graphWidth * minVisibleRatio - visibleWidth / 2;
+        if (viewPosition.x + visibleWidth / 2 < bounds.left - buffer) {
+            newX = bounds.left - buffer - visibleWidth / 2;
             needsAdjustment = true;
         }
 
-        // Check vertical bounds
-        if (viewPosition.y - visibleHeight / 2 > bounds.bottom - graphHeight * minVisibleRatio) {
-            newY = bounds.bottom - graphHeight * minVisibleRatio + visibleHeight / 2;
+        // Check vertical bounds - ensure top or bottom edge stays visible
+        if (viewPosition.y - visibleHeight / 2 > bounds.bottom + buffer) {
+            newY = bounds.bottom + buffer + visibleHeight / 2;
             needsAdjustment = true;
         }
-        if (viewPosition.y + visibleHeight / 2 < bounds.top + graphHeight * minVisibleRatio) {
-            newY = bounds.top + graphHeight * minVisibleRatio - visibleHeight / 2;
+        if (viewPosition.y + visibleHeight / 2 < bounds.top - buffer) {
+            newY = bounds.top - buffer - visibleHeight / 2;
             needsAdjustment = true;
         }
 
