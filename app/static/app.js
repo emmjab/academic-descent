@@ -91,6 +91,62 @@ function initNetwork() {
         }
     });
 
+    // Add panning constraints to prevent graph from going completely off screen
+    network.on('dragEnd', constrainView);
+    network.on('zoom', constrainView);
+
+    function constrainView() {
+        if (nodes.length === 0) return;
+
+        const bounds = network.getBoundingBox();
+        const viewPosition = network.getViewPosition();
+        const scale = network.getScale();
+        const containerWidth = container.clientWidth;
+        const containerHeight = container.clientHeight;
+
+        // Calculate visible area in graph coordinates
+        const visibleWidth = containerWidth / scale;
+        const visibleHeight = containerHeight / scale;
+
+        // Ensure at least 30% of the graph width/height stays visible
+        const minVisibleRatio = 0.3;
+        const graphWidth = bounds.right - bounds.left;
+        const graphHeight = bounds.bottom - bounds.top;
+
+        let newX = viewPosition.x;
+        let newY = viewPosition.y;
+        let needsAdjustment = false;
+
+        // Check horizontal bounds
+        if (viewPosition.x - visibleWidth / 2 > bounds.right - graphWidth * minVisibleRatio) {
+            newX = bounds.right - graphWidth * minVisibleRatio + visibleWidth / 2;
+            needsAdjustment = true;
+        }
+        if (viewPosition.x + visibleWidth / 2 < bounds.left + graphWidth * minVisibleRatio) {
+            newX = bounds.left + graphWidth * minVisibleRatio - visibleWidth / 2;
+            needsAdjustment = true;
+        }
+
+        // Check vertical bounds
+        if (viewPosition.y - visibleHeight / 2 > bounds.bottom - graphHeight * minVisibleRatio) {
+            newY = bounds.bottom - graphHeight * minVisibleRatio + visibleHeight / 2;
+            needsAdjustment = true;
+        }
+        if (viewPosition.y + visibleHeight / 2 < bounds.top + graphHeight * minVisibleRatio) {
+            newY = bounds.top + graphHeight * minVisibleRatio - visibleHeight / 2;
+            needsAdjustment = true;
+        }
+
+        // Adjust view if needed
+        if (needsAdjustment) {
+            network.moveTo({
+                position: { x: newX, y: newY },
+                scale: scale,
+                animation: false
+            });
+        }
+    }
+
     // Handle node clicks
     network.on('click', function(params) {
         if (params.nodes.length > 0) {
