@@ -168,6 +168,7 @@ async function searchPaper() {
             year: paper.year,
             venue: paper.venue,
             citationCount: paper.citationCount,
+            url: paper.url || null, // Store paper URL
             paperId: paper.paperId, // Store original paper ID
             level: 0, // Root is at level 0
             color: {
@@ -323,6 +324,7 @@ async function loadCitations(nodeId, paperTitle, actualPaperId = null) {
             year: citation.year || null,
             venue: citation.venue || null,
             citationCount: citation.citationCount || 0,
+            url: citation.url || null, // Store paper URL
             paperId: citation.paperId, // Store original paper ID
             level: childLevel, // Set explicit level based on parent
             color: nodeColor,
