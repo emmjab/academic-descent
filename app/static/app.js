@@ -61,7 +61,7 @@ function initNetwork() {
             keyboard: true,
             zoomView: true,
             zoomSpeed: 0.5,
-            dragView: true
+            dragView: false  // Disable canvas dragging to prevent panning off screen
         },
         configure: {
             enabled: false
