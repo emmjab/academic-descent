@@ -58,11 +58,50 @@ function initNetwork() {
         interaction: {
             hover: true,
             navigationButtons: true,
-            keyboard: true
+            keyboard: true,
+            zoomView: true,
+            zoomSpeed: 0.5
         }
     };
 
     network = new vis.Network(container, data, options);
+
+    // Set initial zoom to fit the graph
+    network.fit({
+        animation: {
+            duration: 500,
+            easingFunction: 'easeInOutQuad'
+        }
+    });
+
+    // Add zoom constraints after initialization
+    network.on('zoom', function(params) {
+        const scale = network.getScale();
+        // Prevent zooming out too far (minimum scale of 0.1)
+        if (scale < 0.1) {
+            network.moveTo({
+                scale: 0.1
+            });
+        }
+        // Prevent zooming in too far (maximum scale of 2.5)
+        if (scale > 2.5) {
+            network.moveTo({
+                scale: 2.5
+            });
+        }
+    });
+
+    // Fit graph to view whenever nodes are added
+    nodes.on('add', function() {
+        setTimeout(() => {
+            network.fit({
+                animation: {
+                    duration: 300,
+                    easingFunction: 'easeInOutQuad'
+                }
+            });
+        }, 100);
+    });
 
     // Handle node clicks
     network.on('click', function(params) {
