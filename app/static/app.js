@@ -46,7 +46,7 @@ function initNetwork() {
             hierarchical: {
                 direction: 'LR',
                 sortMethod: 'directed',
-                levelSeparation: 250,
+                levelSeparation: 400,
                 nodeSpacing: 100
             }
         },
