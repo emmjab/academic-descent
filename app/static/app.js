@@ -61,7 +61,7 @@ function initNetwork() {
             keyboard: true,
             zoomView: true,
             zoomSpeed: 0.5,
-            dragView: false  // Disable canvas dragging to prevent panning off screen
+            dragView: true
         },
         configure: {
             enabled: false
@@ -93,6 +93,74 @@ function initNetwork() {
                 scale: 5.0
             });
         }
+    });
+
+    // Function to check and constrain view bounds
+    function checkViewBounds() {
+        if (nodes.length === 0) return;
+
+        try {
+            const bounds = network.getBoundingBox();
+            if (!bounds || bounds.left === undefined) return;
+
+            const viewPosition = network.getViewPosition();
+            const scale = network.getScale();
+            const canvas = network.canvas.frame.canvas;
+            const containerWidth = canvas.clientWidth;
+            const containerHeight = canvas.clientHeight;
+
+            // Calculate visible area in graph coordinates
+            const visibleWidth = containerWidth / scale;
+            const visibleHeight = containerHeight / scale;
+
+            // Calculate viewport edges
+            const viewLeft = viewPosition.x - visibleWidth / 2;
+            const viewRight = viewPosition.x + visibleWidth / 2;
+            const viewTop = viewPosition.y - visibleHeight / 2;
+            const viewBottom = viewPosition.y + visibleHeight / 2;
+
+            let newX = viewPosition.x;
+            let newY = viewPosition.y;
+            let needsAdjustment = false;
+
+            // Check if completely off screen horizontally
+            if (viewRight < bounds.left) {
+                newX = bounds.left - visibleWidth / 2;
+                needsAdjustment = true;
+            } else if (viewLeft > bounds.right) {
+                newX = bounds.right + visibleWidth / 2;
+                needsAdjustment = true;
+            }
+
+            // Check if completely off screen vertically
+            if (viewBottom < bounds.top) {
+                newY = bounds.top - visibleHeight / 2;
+                needsAdjustment = true;
+            } else if (viewTop > bounds.bottom) {
+                newY = bounds.bottom + visibleHeight / 2;
+                needsAdjustment = true;
+            }
+
+            if (needsAdjustment) {
+                network.moveTo({
+                    position: { x: newX, y: newY },
+                    scale: scale,
+                    animation: false
+                });
+            }
+        } catch (e) {
+            // Silently ignore errors
+        }
+    }
+
+    // Check bounds after dragging ends
+    network.on('dragEnd', function() {
+        checkViewBounds();
+    });
+
+    // Check bounds after animation finishes (for navigation buttons)
+    network.on('animationFinished', function() {
+        checkViewBounds();
     });
 
     // Handle node clicks
