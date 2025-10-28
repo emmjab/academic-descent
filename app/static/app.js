@@ -91,11 +91,19 @@ function initNetwork() {
         }
     });
 
-    // Add panning constraints to prevent graph from going completely off screen
-    network.on('dragEnd', constrainView);
+    // Add panning constraints to prevent graph from going off screen
+    let isDragging = false;
 
-    function constrainView() {
-        if (nodes.length === 0) return;
+    network.on('dragStart', function() {
+        isDragging = true;
+    });
+
+    network.on('dragEnd', function() {
+        isDragging = false;
+    });
+
+    network.on('beforeDrawing', function() {
+        if (!isDragging || nodes.length === 0) return;
 
         const bounds = network.getBoundingBox();
         const viewPosition = network.getViewPosition();
@@ -107,30 +115,27 @@ function initNetwork() {
         const visibleWidth = containerWidth / scale;
         const visibleHeight = containerHeight / scale;
 
-        // Minimum buffer - just keep an edge visible (50 pixels worth in graph coords)
-        const buffer = 50 / scale;
-
         let newX = viewPosition.x;
         let newY = viewPosition.y;
         let needsAdjustment = false;
 
-        // Check horizontal bounds - ensure left or right edge stays visible
-        if (viewPosition.x - visibleWidth / 2 > bounds.right + buffer) {
-            newX = bounds.right + buffer + visibleWidth / 2;
+        // Check horizontal bounds - don't let graph go completely off screen
+        if (viewPosition.x - visibleWidth / 2 > bounds.right) {
+            newX = bounds.right + visibleWidth / 2;
             needsAdjustment = true;
         }
-        if (viewPosition.x + visibleWidth / 2 < bounds.left - buffer) {
-            newX = bounds.left - buffer - visibleWidth / 2;
+        if (viewPosition.x + visibleWidth / 2 < bounds.left) {
+            newX = bounds.left - visibleWidth / 2;
             needsAdjustment = true;
         }
 
-        // Check vertical bounds - ensure top or bottom edge stays visible
-        if (viewPosition.y - visibleHeight / 2 > bounds.bottom + buffer) {
-            newY = bounds.bottom + buffer + visibleHeight / 2;
+        // Check vertical bounds - don't let graph go completely off screen
+        if (viewPosition.y - visibleHeight / 2 > bounds.bottom) {
+            newY = bounds.bottom + visibleHeight / 2;
             needsAdjustment = true;
         }
-        if (viewPosition.y + visibleHeight / 2 < bounds.top - buffer) {
-            newY = bounds.top - buffer - visibleHeight / 2;
+        if (viewPosition.y + visibleHeight / 2 < bounds.top) {
+            newY = bounds.top - visibleHeight / 2;
             needsAdjustment = true;
         }
 
@@ -142,7 +147,7 @@ function initNetwork() {
                 animation: false
             });
         }
-    }
+    });
 
     // Handle node clicks
     network.on('click', function(params) {
