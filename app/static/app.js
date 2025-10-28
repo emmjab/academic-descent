@@ -95,67 +95,6 @@ function initNetwork() {
         }
     });
 
-    // Constrain view during dragging
-    network.on('dragging', function(params) {
-        if (nodes.length === 0) return;
-
-        try {
-            const bounds = network.getBoundingBox();
-            const viewPosition = network.getViewPosition();
-            const scale = network.getScale();
-            const canvas = network.canvas.frame.canvas;
-            const containerWidth = canvas.clientWidth;
-            const containerHeight = canvas.clientHeight;
-
-            // Calculate visible area in graph coordinates
-            const visibleWidth = containerWidth / scale;
-            const visibleHeight = containerHeight / scale;
-
-            // Calculate viewport edges in graph coordinates
-            const viewLeft = viewPosition.x - visibleWidth / 2;
-            const viewRight = viewPosition.x + visibleWidth / 2;
-            const viewTop = viewPosition.y - visibleHeight / 2;
-            const viewBottom = viewPosition.y + visibleHeight / 2;
-
-            let newX = viewPosition.x;
-            let newY = viewPosition.y;
-            let needsAdjustment = false;
-
-            // Prevent graph from going completely off screen horizontally
-            if (viewRight < bounds.left) {
-                // Moved too far left
-                newX = bounds.left - visibleWidth / 2;
-                needsAdjustment = true;
-            } else if (viewLeft > bounds.right) {
-                // Moved too far right
-                newX = bounds.right + visibleWidth / 2;
-                needsAdjustment = true;
-            }
-
-            // Prevent graph from going completely off screen vertically
-            if (viewBottom < bounds.top) {
-                // Moved too far up
-                newY = bounds.top - visibleHeight / 2;
-                needsAdjustment = true;
-            } else if (viewTop > bounds.bottom) {
-                // Moved too far down
-                newY = bounds.bottom + visibleHeight / 2;
-                needsAdjustment = true;
-            }
-
-            if (needsAdjustment) {
-                console.log('Constraining view - was:', viewPosition, 'now:', { x: newX, y: newY });
-                network.moveTo({
-                    position: { x: newX, y: newY },
-                    scale: scale,
-                    animation: false
-                });
-            }
-        } catch (e) {
-            console.warn('Error in constraint check:', e);
-        }
-    });
-
     // Handle node clicks
     network.on('click', function(params) {
         if (params.nodes.length > 0) {
