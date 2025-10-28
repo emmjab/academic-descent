@@ -2,7 +2,8 @@
 let network = null;
 let nodes = new vis.DataSet([]);
 let edges = new vis.DataSet([]);
-let loadedPapers = new Set(); // Track which papers we've loaded to avoid duplicates
+let expandedPapers = new Set(); // Track which papers are currently expanded
+let paperChildren = {}; // Track children of each paper for collapsing
 
 // Initialize the network graph
 function initNetwork() {
@@ -67,8 +68,12 @@ function initNetwork() {
             const node = nodes.get(nodeId);
             displayPaperInfo(node);
 
-            // If this paper hasn't been expanded yet, load its citations
-            if (!loadedPapers.has(nodeId)) {
+            // Toggle expand/collapse
+            if (expandedPapers.has(nodeId)) {
+                // Collapse: remove children
+                collapseCitations(nodeId);
+            } else {
+                // Expand: load citations
                 loadCitations(nodeId, node.title);
             }
         }
@@ -144,7 +149,8 @@ async function searchPaper() {
         // Clear existing graph
         nodes.clear();
         edges.clear();
-        loadedPapers.clear();
+        expandedPapers.clear();
+        paperChildren = {};
 
         // Add root node
         nodes.add({
@@ -176,13 +182,43 @@ async function searchPaper() {
     }
 }
 
-// Load citations for a paper
-async function loadCitations(paperId, paperTitle) {
-    if (loadedPapers.has(paperId)) {
+// Collapse citations for a paper
+function collapseCitations(paperId) {
+    const children = paperChildren[paperId] || [];
+
+    if (children.length === 0) {
         return;
     }
 
-    loadedPapers.add(paperId);
+    // Remove edges from this paper to its children
+    const edgesToRemove = edges.get({
+        filter: (edge) => edge.from === paperId
+    });
+    edges.remove(edgesToRemove);
+
+    // Recursively collapse and remove child nodes
+    children.forEach(childId => {
+        // First collapse any expanded children
+        if (expandedPapers.has(childId)) {
+            collapseCitations(childId);
+        }
+        // Then remove the child node
+        nodes.remove(childId);
+    });
+
+    // Clear children tracking and mark as collapsed
+    paperChildren[paperId] = [];
+    expandedPapers.delete(paperId);
+
+    showStatus(`Collapsed citations`, 'info');
+}
+
+// Load citations for a paper
+async function loadCitations(paperId, paperTitle) {
+    if (expandedPapers.has(paperId)) {
+        return;
+    }
+
     showStatus(`Loading citations for "${paperTitle}"...`, 'info');
 
     try {
@@ -208,6 +244,9 @@ async function loadCitations(paperId, paperTitle) {
             const yearB = b.year || 9999;
             return yearA - yearB;
         });
+
+        // Track children for this paper
+        const childIds = [];
 
         // Add citation nodes and edges
         citations.forEach(citation => {
@@ -237,9 +276,16 @@ async function loadCitations(paperId, paperTitle) {
                 from: paperId,
                 to: citation.paperId
             });
+
+            // Track this child
+            childIds.push(citation.paperId);
         });
 
-        showStatus(`Loaded ${citations.length} citations`, 'success');
+        // Mark paper as expanded and save its children
+        expandedPapers.add(paperId);
+        paperChildren[paperId] = childIds;
+
+        showStatus(`Loaded ${citations.length} citations (click to collapse)`, 'success');
 
     } catch (error) {
         console.error('Error loading citations:', error);
