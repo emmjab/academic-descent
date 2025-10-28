@@ -103,13 +103,36 @@ function initNetwork() {
         }
 
         try {
-            const bounds = network.getBoundingBox();
-            console.log('Bounds:', bounds);
+            // Calculate bounds manually from node positions
+            const positions = network.getPositions();
+            const nodeIds = Object.keys(positions);
 
-            if (!bounds || bounds.left === undefined) {
-                console.log('Invalid bounds, skipping');
+            if (nodeIds.length === 0) {
+                console.log('No node positions available');
                 return;
             }
+
+            let minX = Infinity, maxX = -Infinity;
+            let minY = Infinity, maxY = -Infinity;
+
+            nodeIds.forEach(id => {
+                const pos = positions[id];
+                minX = Math.min(minX, pos.x);
+                maxX = Math.max(maxX, pos.x);
+                minY = Math.min(minY, pos.y);
+                maxY = Math.max(maxY, pos.y);
+            });
+
+            // Add some margin (node size)
+            const margin = 200;
+            const bounds = {
+                left: minX - margin,
+                right: maxX + margin,
+                top: minY - margin,
+                bottom: maxY + margin
+            };
+
+            console.log('Calculated bounds:', bounds);
 
             const viewPosition = network.getViewPosition();
             const scale = network.getScale();
@@ -128,7 +151,6 @@ function initNetwork() {
             const viewBottom = viewPosition.y + visibleHeight / 2;
 
             console.log('View edges:', { viewLeft, viewRight, viewTop, viewBottom });
-            console.log('Graph bounds:', { left: bounds.left, right: bounds.right, top: bounds.top, bottom: bounds.bottom });
 
             let newX = viewPosition.x;
             let newY = viewPosition.y;
@@ -137,22 +159,22 @@ function initNetwork() {
             // Check if completely off screen horizontally
             if (viewRight < bounds.left) {
                 console.log('Completely off left');
-                newX = bounds.left - visibleWidth / 2;
+                newX = bounds.left + visibleWidth / 2;
                 needsAdjustment = true;
             } else if (viewLeft > bounds.right) {
                 console.log('Completely off right');
-                newX = bounds.right + visibleWidth / 2;
+                newX = bounds.right - visibleWidth / 2;
                 needsAdjustment = true;
             }
 
             // Check if completely off screen vertically
             if (viewBottom < bounds.top) {
                 console.log('Completely off top');
-                newY = bounds.top - visibleHeight / 2;
+                newY = bounds.top + visibleHeight / 2;
                 needsAdjustment = true;
             } else if (viewTop > bounds.bottom) {
                 console.log('Completely off bottom');
-                newY = bounds.bottom + visibleHeight / 2;
+                newY = bounds.bottom - visibleHeight / 2;
                 needsAdjustment = true;
             }
 
