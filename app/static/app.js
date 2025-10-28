@@ -60,7 +60,11 @@ function initNetwork() {
             navigationButtons: true,
             keyboard: true,
             zoomView: true,
-            zoomSpeed: 0.5
+            zoomSpeed: 0.5,
+            dragView: true
+        },
+        configure: {
+            enabled: false
         }
     };
 
@@ -91,63 +95,69 @@ function initNetwork() {
         }
     });
 
-    // Add panning constraints to prevent graph from going off screen
-    let isDragging = false;
+    // Store last valid position
+    let lastValidPosition = null;
+    let constraintCheckInterval = null;
 
     network.on('dragStart', function() {
-        isDragging = true;
+        lastValidPosition = network.getViewPosition();
+        // Check constraints frequently during drag
+        constraintCheckInterval = setInterval(checkAndConstrainView, 50);
     });
 
     network.on('dragEnd', function() {
-        isDragging = false;
+        if (constraintCheckInterval) {
+            clearInterval(constraintCheckInterval);
+            constraintCheckInterval = null;
+        }
+        checkAndConstrainView();
     });
 
-    network.on('beforeDrawing', function() {
-        if (!isDragging || nodes.length === 0) return;
+    function checkAndConstrainView() {
+        if (nodes.length === 0) return;
 
-        const bounds = network.getBoundingBox();
-        const viewPosition = network.getViewPosition();
-        const scale = network.getScale();
-        const containerWidth = container.clientWidth;
-        const containerHeight = container.clientHeight;
+        try {
+            const bounds = network.getBoundingBox();
+            const viewPosition = network.getViewPosition();
+            const scale = network.getScale();
+            const canvas = network.canvas.frame.canvas;
+            const containerWidth = canvas.clientWidth;
+            const containerHeight = canvas.clientHeight;
 
-        // Calculate visible area in graph coordinates
-        const visibleWidth = containerWidth / scale;
-        const visibleHeight = containerHeight / scale;
+            // Calculate visible area in graph coordinates
+            const visibleWidth = containerWidth / scale;
+            const visibleHeight = containerHeight / scale;
 
-        let newX = viewPosition.x;
-        let newY = viewPosition.y;
-        let needsAdjustment = false;
+            // Calculate viewport edges in graph coordinates
+            const viewLeft = viewPosition.x - visibleWidth / 2;
+            const viewRight = viewPosition.x + visibleWidth / 2;
+            const viewTop = viewPosition.y - visibleHeight / 2;
+            const viewBottom = viewPosition.y + visibleHeight / 2;
 
-        // Check horizontal bounds - don't let graph go completely off screen
-        if (viewPosition.x - visibleWidth / 2 > bounds.right) {
-            newX = bounds.right + visibleWidth / 2;
-            needsAdjustment = true;
+            // Check if graph is completely off screen
+            const completelyOffLeft = viewRight < bounds.left;
+            const completelyOffRight = viewLeft > bounds.right;
+            const completelyOffTop = viewBottom < bounds.top;
+            const completelyOffBottom = viewTop > bounds.bottom;
+
+            if (completelyOffLeft || completelyOffRight || completelyOffTop || completelyOffBottom) {
+                // Restore last valid position
+                if (lastValidPosition) {
+                    network.moveTo({
+                        position: lastValidPosition,
+                        scale: scale,
+                        animation: false
+                    });
+                }
+            } else {
+                // Update last valid position
+                lastValidPosition = { x: viewPosition.x, y: viewPosition.y };
+            }
+        } catch (e) {
+            // Silently handle any errors
+            console.warn('Error in constraint check:', e);
         }
-        if (viewPosition.x + visibleWidth / 2 < bounds.left) {
-            newX = bounds.left - visibleWidth / 2;
-            needsAdjustment = true;
-        }
-
-        // Check vertical bounds - don't let graph go completely off screen
-        if (viewPosition.y - visibleHeight / 2 > bounds.bottom) {
-            newY = bounds.bottom + visibleHeight / 2;
-            needsAdjustment = true;
-        }
-        if (viewPosition.y + visibleHeight / 2 < bounds.top) {
-            newY = bounds.top - visibleHeight / 2;
-            needsAdjustment = true;
-        }
-
-        // Adjust view if needed
-        if (needsAdjustment) {
-            network.moveTo({
-                position: { x: newX, y: newY },
-                scale: scale,
-                animation: false
-            });
-        }
-    });
+    }
 
     // Handle node clicks
     network.on('click', function(params) {
