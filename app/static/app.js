@@ -95,25 +95,8 @@ function initNetwork() {
         }
     });
 
-    // Store last valid position
-    let lastValidPosition = null;
-    let constraintCheckInterval = null;
-
-    network.on('dragStart', function() {
-        lastValidPosition = network.getViewPosition();
-        // Check constraints frequently during drag
-        constraintCheckInterval = setInterval(checkAndConstrainView, 50);
-    });
-
-    network.on('dragEnd', function() {
-        if (constraintCheckInterval) {
-            clearInterval(constraintCheckInterval);
-            constraintCheckInterval = null;
-        }
-        checkAndConstrainView();
-    });
-
-    function checkAndConstrainView() {
+    // Constrain view during dragging
+    network.on('dragging', function(params) {
         if (nodes.length === 0) return;
 
         try {
@@ -134,30 +117,44 @@ function initNetwork() {
             const viewTop = viewPosition.y - visibleHeight / 2;
             const viewBottom = viewPosition.y + visibleHeight / 2;
 
-            // Check if graph is completely off screen
-            const completelyOffLeft = viewRight < bounds.left;
-            const completelyOffRight = viewLeft > bounds.right;
-            const completelyOffTop = viewBottom < bounds.top;
-            const completelyOffBottom = viewTop > bounds.bottom;
+            let newX = viewPosition.x;
+            let newY = viewPosition.y;
+            let needsAdjustment = false;
 
-            if (completelyOffLeft || completelyOffRight || completelyOffTop || completelyOffBottom) {
-                // Restore last valid position
-                if (lastValidPosition) {
-                    network.moveTo({
-                        position: lastValidPosition,
-                        scale: scale,
-                        animation: false
-                    });
-                }
-            } else {
-                // Update last valid position
-                lastValidPosition = { x: viewPosition.x, y: viewPosition.y };
+            // Prevent graph from going completely off screen horizontally
+            if (viewRight < bounds.left) {
+                // Moved too far left
+                newX = bounds.left - visibleWidth / 2;
+                needsAdjustment = true;
+            } else if (viewLeft > bounds.right) {
+                // Moved too far right
+                newX = bounds.right + visibleWidth / 2;
+                needsAdjustment = true;
+            }
+
+            // Prevent graph from going completely off screen vertically
+            if (viewBottom < bounds.top) {
+                // Moved too far up
+                newY = bounds.top - visibleHeight / 2;
+                needsAdjustment = true;
+            } else if (viewTop > bounds.bottom) {
+                // Moved too far down
+                newY = bounds.bottom + visibleHeight / 2;
+                needsAdjustment = true;
+            }
+
+            if (needsAdjustment) {
+                console.log('Constraining view - was:', viewPosition, 'now:', { x: newX, y: newY });
+                network.moveTo({
+                    position: { x: newX, y: newY },
+                    scale: scale,
+                    animation: false
+                });
             }
         } catch (e) {
-            // Silently handle any errors
             console.warn('Error in constraint check:', e);
         }
-    }
+    });
 
     // Handle node clicks
     network.on('click', function(params) {
