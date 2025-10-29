@@ -587,5 +587,21 @@ document.getElementById('about-link').addEventListener('click', (e) => {
     }
 });
 
+// Info box collapse/expand toggle
+document.getElementById('toggle-info-btn').addEventListener('click', (e) => {
+    const paperInfo = document.getElementById('paper-info');
+    const toggleBtn = document.getElementById('toggle-info-btn');
+
+    if (paperInfo.classList.contains('collapsed')) {
+        paperInfo.classList.remove('collapsed');
+        toggleBtn.textContent = '−';
+        toggleBtn.title = 'Collapse';
+    } else {
+        paperInfo.classList.add('collapsed');
+        toggleBtn.textContent = '+';
+        toggleBtn.title = 'Expand';
+    }
+});
+
 // Initialize network on page load
 window.addEventListener('load', initNetwork);

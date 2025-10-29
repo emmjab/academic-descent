@@ -11,16 +11,14 @@
     <div class="container">
         <header>
             <h1>Academic Descent</h1>
-            <p>Explore academic paper citation graphs</p>
-            <a href="#" id="about-link" class="about-link">About</a>
+            <p>Enter the title of an academic paper to visualize its citation network. Click on any citation to explore deeper into the network. • <a href="#" id="about-link" class="about-link">More info</a></p>
         </header>
 
         <div id="about-section" class="about-section" style="display: none;">
             <h3>About Academic Descent</h3>
             <p>
                 Academic Descent is a tool for exploring academic paper citation networks.
-                Enter a paper title to visualize which papers it cites (its references),
-                then click on any citation to explore deeper into the network.
+                Click on any citation to explore deeper into the network.
             </p>
             <p>
                 <strong>How to use:</strong>
@@ -51,15 +49,18 @@
             <input type="text" id="paper-title" placeholder="Enter a paper title (e.g., &quot;Attention is All You Need&quot;)" />
             <button id="search-btn">Search</button>
         </div>
-        <p class="search-help">Enter the title of an academic paper to visualize its citation network</p>
 
         <div id="status-message"></div>
 
-        <div id="network-container"></div>
-
-        <div id="paper-info">
-            <h3>Selected Paper</h3>
-            <div id="paper-details"></div>
+        <div class="graph-wrapper">
+            <div id="network-container"></div>
+            <div id="paper-info">
+                <div class="paper-info-header">
+                    <h3>Selected Paper</h3>
+                    <button id="toggle-info-btn" class="toggle-info-btn" title="Collapse">−</button>
+                </div>
+                <div id="paper-details" class="paper-details-content">Click on a paper node to view details</div>
+            </div>
         </div>
     </div>
 
